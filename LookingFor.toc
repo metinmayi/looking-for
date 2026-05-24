@@ -4,6 +4,5 @@
 ## Author: metinmayi
 ## Version: 1.0.0
 ## SavedVariables: LookingForDB
-## Dependencies: Ace3
 
 Core.lua
