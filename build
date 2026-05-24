@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "$0")"
+
+rm -rf LookingFor LookingFor.zip
+mkdir LookingFor
+cp Core.lua LookingFor.toc LookingFor/
+zip -r LookingFor.zip LookingFor
+rm -rf LookingFor
