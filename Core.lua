@@ -25,6 +25,22 @@ local CLASS_NAMES = {
     WARRIOR     = "Warrior",
 }
 
+local SPECS_BY_CLASS = {
+    DEATHKNIGHT = { { id = 250, name = "Blood" },         { id = 251, name = "Frost" },        { id = 252, name = "Unholy" } },
+    DEMONHUNTER = { { id = 577, name = "Havoc" },         { id = 581, name = "Vengeance" } },
+    DRUID       = { { id = 102, name = "Balance" },       { id = 103, name = "Feral" },        { id = 104, name = "Guardian" },   { id = 105, name = "Restoration" } },
+    EVOKER      = { { id = 1467, name = "Devastation" },  { id = 1468, name = "Preservation" }, { id = 1473, name = "Augmentation" } },
+    HUNTER      = { { id = 253, name = "Beast Mastery" }, { id = 254, name = "Marksmanship" }, { id = 255, name = "Survival" } },
+    MAGE        = { { id = 62,  name = "Arcane" },        { id = 63,  name = "Fire" },         { id = 64,  name = "Frost" } },
+    MONK        = { { id = 268, name = "Brewmaster" },    { id = 270, name = "Mistweaver" },   { id = 269, name = "Windwalker" } },
+    PALADIN     = { { id = 65,  name = "Holy" },          { id = 66,  name = "Protection" },   { id = 70,  name = "Retribution" } },
+    PRIEST      = { { id = 256, name = "Discipline" },    { id = 257, name = "Holy" },         { id = 258, name = "Shadow" } },
+    ROGUE       = { { id = 259, name = "Assassination" }, { id = 260, name = "Outlaw" },       { id = 261, name = "Subtlety" } },
+    SHAMAN      = { { id = 262, name = "Elemental" },     { id = 263, name = "Enhancement" },  { id = 264, name = "Restoration" } },
+    WARLOCK     = { { id = 265, name = "Affliction" },    { id = 266, name = "Demonology" },   { id = 267, name = "Destruction" } },
+    WARRIOR     = { { id = 71,  name = "Arms" },          { id = 72,  name = "Fury" },         { id = 73,  name = "Protection" } },
+}
+
 local seen = {}
 local lastPlayed = 0
 local db
@@ -35,10 +51,28 @@ local function loadDB()
     local key = (UnitName("player") or "?") .. "-" .. (GetRealmName() or "?")
     local char = LookingForDB[key] or {}
     if char.enabled == nil then char.enabled = true end
-    char.classes = char.classes or {}
-    for _, c in ipairs(CLASS_ORDER) do
-        if char.classes[c] == nil then char.classes[c] = false end
+
+    char.specs = char.specs or {}
+
+    if char.classes then
+        for classKey, wasEnabled in pairs(char.classes) do
+            if wasEnabled and SPECS_BY_CLASS[classKey] then
+                for _, spec in ipairs(SPECS_BY_CLASS[classKey]) do
+                    if char.specs[spec.id] == nil then
+                        char.specs[spec.id] = true
+                    end
+                end
+            end
+        end
+        char.classes = nil
     end
+
+    for _, classKey in ipairs(CLASS_ORDER) do
+        for _, spec in ipairs(SPECS_BY_CLASS[classKey]) do
+            if char.specs[spec.id] == nil then char.specs[spec.id] = false end
+        end
+    end
+
     LookingForDB[key] = char
     db = char
 end
@@ -54,8 +88,8 @@ local function applicantMatches(applicantID)
     local data = C_LFGList.GetApplicantInfo(applicantID)
     if not data or not data.numMembers or data.numMembers == 0 then return false end
     for i = 1, data.numMembers do
-        local _, classFile = C_LFGList.GetApplicantMemberInfo(applicantID, i)
-        if classFile and db.classes[classFile] then
+        local specID = select(16, C_LFGList.GetApplicantMemberInfo(applicantID, i))
+        if specID and db.specs[specID] then
             return true
         end
     end
@@ -103,6 +137,19 @@ local function makeCheckbox(parent, label, tooltip)
     return cb
 end
 
+local function setAllClassSpecs(classKey, value)
+    for _, spec in ipairs(SPECS_BY_CLASS[classKey]) do
+        db.specs[spec.id] = value
+    end
+end
+
+local function classAllOn(classKey)
+    for _, spec in ipairs(SPECS_BY_CLASS[classKey]) do
+        if not db.specs[spec.id] then return false end
+    end
+    return true
+end
+
 local function buildPanel()
     local panel = CreateFrame("Frame")
     panel.name = "LookingFor"
@@ -115,35 +162,92 @@ local function buildPanel()
     subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -8)
     subtitle:SetPoint("RIGHT", -16, 0)
     subtitle:SetJustifyH("LEFT")
-    subtitle:SetText("Plays a sound when an applicant of a selected class signs up to your LFG listing.")
+    subtitle:SetText("Plays a sound when an applicant of a selected spec signs up to your LFG listing.")
 
     local enabledCB = makeCheckbox(panel, "Enable alerts",
-        "Master switch. When off, no sounds will play regardless of class selections.")
+        "Master switch. When off, no sounds will play regardless of spec selections.")
     enabledCB:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -16)
     enabledCB:SetScript("OnShow", function(self) self:SetChecked(db.enabled) end)
     enabledCB:SetScript("OnClick", function(self) db.enabled = self:GetChecked() end)
 
     local header = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     header:SetPoint("TOPLEFT", enabledCB, "BOTTOMLEFT", 0, -16)
-    header:SetText("Alert me when these classes sign up")
+    header:SetText("Alert me when these specs sign up")
 
-    local COL_WIDTH = 160
-    local ROW_HEIGHT = 26
-    for i, classKey in ipairs(CLASS_ORDER) do
-        local col = (i - 1) % 2
-        local row = math.floor((i - 1) / 2)
-        local cb = makeCheckbox(panel, CLASS_NAMES[classKey])
-        cb:SetPoint("TOPLEFT", header, "BOTTOMLEFT", col * COL_WIDTH, -8 - row * ROW_HEIGHT)
-        cb:SetScript("OnShow", function(self) self:SetChecked(db.classes[classKey]) end)
-        cb:SetScript("OnClick", function(self) db.classes[classKey] = self:GetChecked() end)
-    end
-
-    local rows = math.ceil(#CLASS_ORDER / 2)
     local testBtn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
     testBtn:SetSize(120, 22)
-    testBtn:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, -8 - rows * ROW_HEIGHT - 16)
+    testBtn:SetPoint("BOTTOMLEFT", 16, 16)
     testBtn:SetText("Test sound")
     testBtn:SetScript("OnClick", function() PlaySound(SOUND_ID) end)
+
+    local scroll = CreateFrame("ScrollFrame", nil, panel, "UIPanelScrollFrameTemplate")
+    scroll:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, -8)
+    scroll:SetPoint("RIGHT", -32, 0)
+    scroll:SetPoint("BOTTOM", testBtn, "TOP", 0, 8)
+
+    local content = CreateFrame("Frame", nil, scroll)
+    scroll:SetScrollChild(content)
+
+    local COL_WIDTH = 200
+    local SPEC_ROW_HEIGHT = 22
+    local CLASS_HEADER_HEIGHT = 22
+    local CLASS_GAP = 6
+    local SPEC_INDENT = 16
+
+    local columns = { {}, {} }
+    for i, classKey in ipairs(CLASS_ORDER) do
+        local col = ((i - 1) % 2) + 1
+        table.insert(columns[col], classKey)
+    end
+
+    local classCheckboxes = {}
+
+    for colIndex, classList in ipairs(columns) do
+        local yOffset = 0
+        for _, classKey in ipairs(classList) do
+            local classCB = makeCheckbox(content, CLASS_NAMES[classKey],
+                "Toggle all " .. CLASS_NAMES[classKey] .. " specs.")
+            classCB.text:SetFontObject("GameFontNormal")
+            classCB:SetPoint("TOPLEFT", content, "TOPLEFT",
+                (colIndex - 1) * COL_WIDTH, -yOffset)
+            classCB:SetScript("OnShow", function(self) self:SetChecked(classAllOn(classKey)) end)
+            classCB:SetScript("OnClick", function(self)
+                local checked = self:GetChecked()
+                setAllClassSpecs(classKey, checked and true or false)
+                for _, child in ipairs(classCheckboxes[classKey].specs) do
+                    child:SetChecked(checked)
+                end
+            end)
+            classCheckboxes[classKey] = { class = classCB, specs = {} }
+            yOffset = yOffset + CLASS_HEADER_HEIGHT
+
+            for _, spec in ipairs(SPECS_BY_CLASS[classKey]) do
+                local specCB = makeCheckbox(content, spec.name)
+                specCB:SetPoint("TOPLEFT", content, "TOPLEFT",
+                    (colIndex - 1) * COL_WIDTH + SPEC_INDENT, -yOffset)
+                specCB:SetScript("OnShow", function(self) self:SetChecked(db.specs[spec.id]) end)
+                specCB:SetScript("OnClick", function(self)
+                    db.specs[spec.id] = self:GetChecked() and true or false
+                    classCheckboxes[classKey].class:SetChecked(classAllOn(classKey))
+                end)
+                table.insert(classCheckboxes[classKey].specs, specCB)
+                yOffset = yOffset + SPEC_ROW_HEIGHT
+            end
+
+            yOffset = yOffset + CLASS_GAP
+        end
+    end
+
+    local maxY = 0
+    for _, classList in ipairs(columns) do
+        local y = 0
+        for _, classKey in ipairs(classList) do
+            y = y + CLASS_HEADER_HEIGHT + #SPECS_BY_CLASS[classKey] * SPEC_ROW_HEIGHT + CLASS_GAP
+        end
+        if y > maxY then maxY = y end
+    end
+
+    content:SetSize(COL_WIDTH * 2, maxY)
 
     return panel
 end

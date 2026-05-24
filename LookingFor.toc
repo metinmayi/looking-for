@@ -1,6 +1,6 @@
 ## Interface: 120005
 ## Title: LookingFor
-## Notes: Plays a sound when an applicant of a selected class signs up to your LFG listing.
+## Notes: Plays a sound when an applicant of a selected spec signs up to your LFG listing.
 ## Author: metinmayi
 ## Version: 1.0.0
 ## SavedVariables: LookingForDB
