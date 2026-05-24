@@ -174,16 +174,10 @@ local function buildPanel()
     header:SetPoint("TOPLEFT", enabledCB, "BOTTOMLEFT", 0, -16)
     header:SetText("Alert me when these specs sign up")
 
-    local testBtn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-    testBtn:SetSize(120, 22)
-    testBtn:SetPoint("BOTTOMLEFT", 16, 16)
-    testBtn:SetText("Test sound")
-    testBtn:SetScript("OnClick", function() PlaySound(SOUND_ID) end)
-
     local scroll = CreateFrame("ScrollFrame", nil, panel, "UIPanelScrollFrameTemplate")
     scroll:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, -8)
     scroll:SetPoint("RIGHT", -32, 0)
-    scroll:SetPoint("BOTTOM", testBtn, "TOP", 0, 8)
+    scroll:SetPoint("BOTTOM", 0, 16)
 
     local content = CreateFrame("Frame", nil, scroll)
     scroll:SetScrollChild(content)
