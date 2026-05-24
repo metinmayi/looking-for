@@ -27,7 +27,7 @@ local CLASS_NAMES = {
 
 local SPECS_BY_CLASS = {
     DEATHKNIGHT = { { id = 250, name = "Blood" },         { id = 251, name = "Frost" },        { id = 252, name = "Unholy" } },
-    DEMONHUNTER = { { id = 577, name = "Havoc" },         { id = 581, name = "Vengeance" } },
+    DEMONHUNTER = { { id = 577, name = "Havoc" },         { id = 581, name = "Vengeance" },   { id = 1480, name = "Devourer" } },
     DRUID       = { { id = 102, name = "Balance" },       { id = 103, name = "Feral" },        { id = 104, name = "Guardian" },   { id = 105, name = "Restoration" } },
     EVOKER      = { { id = 1467, name = "Devastation" },  { id = 1468, name = "Preservation" }, { id = 1473, name = "Augmentation" } },
     HUNTER      = { { id = 253, name = "Beast Mastery" }, { id = 254, name = "Marksmanship" }, { id = 255, name = "Survival" } },
